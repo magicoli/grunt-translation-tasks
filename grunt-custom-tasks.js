@@ -6,6 +6,16 @@ module.exports = function(grunt, pluginName) {
 
     'use strict';
 
+    // Determine project type and settings
+    const isWordPressProject = !!pluginName;
+    const pkg = grunt.file.readJSON('package.json');
+    const projectName = pluginName || path.basename(pkg.name || 'project');
+    
+    // Set locale paths based on project type
+    const localeFolder = isWordPressProject ? 'languages' : 'locale';
+    const localePoFiles = isWordPressProject ? 'languages/*.po' : 'locale/*/LC_MESSAGES/*.po';
+    const potPath = isWordPressProject ? 'languages' : 'locale';
+
     function getCurrentWordPressVersion() {
         const wpVersionFile = path.join( __dirname, '../../../wp-includes/version.php' );
         if (fs.existsSync( wpVersionFile )) {
@@ -36,7 +46,7 @@ module.exports = function(grunt, pluginName) {
 
     grunt.config.set('addtextdomain', {
         options: {
-            textdomain: pluginName,
+            textdomain: projectName,
         },
         update_all_domains: {
             options: {
@@ -51,8 +61,8 @@ module.exports = function(grunt, pluginName) {
         target: {
             files: [{
                 expand: true,
-                cwd: 'languages',
-                src: ['*.po'],
+                cwd: localeFolder,
+                src: isWordPressProject ? ['*.po'] : ['*/LC_MESSAGES/*.po'],
             }]
         }
     });
@@ -60,15 +70,15 @@ module.exports = function(grunt, pluginName) {
     grunt.config.set('makepot', {
         target: {
             options: {
-                domainPath: '/languages',
+                domainPath: '/' + localeFolder,
                 exclude: [ '\.git/*', 'bin/*', 'node_modules/*', 'vendor/*', 'tests/*', 'tmp/*', 'src/*' ],
-                mainFile: `${pluginName}.php`,
-                potFilename: `${pluginName}.pot`,
+                mainFile: isWordPressProject ? `${pluginName}.php` : null,
+                potFilename: `${projectName}.pot`,
                 potHeaders: {
                     poedit: true,
                     'x-poedit-keywordslist': true
                 },
-                type: 'wp-plugin',
+                type: isWordPressProject ? 'wp-plugin' : 'generic',
                 updateTimestamp: true
             }
         }
@@ -261,7 +271,7 @@ module.exports = function(grunt, pluginName) {
     ] );
     grunt.registerTask('makemo', 'Convert PO files to MO using WP CLI', function() {
         var done = this.async();
-        var poFiles = grunt.file.expand('languages/*.po');
+        var poFiles = grunt.file.expand(localePoFiles);
 
         if (!poFiles.length) {
             grunt.log.error('No PO files found');
