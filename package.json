@@ -1,6 +1,6 @@
 {
-    "name": "oli-brary",
-    "type": "wordpress-library",
+    "name": "grunt-translation-tasks",
+    "type": "library",
     "version": "1.0.0",
     "scripts": {
         "build": "wp-scripts build && grunt i18n",

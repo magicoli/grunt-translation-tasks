@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "description": "My plugin description",
   "workspaces": [
-    "dev/olib-dev"
+    "dev/grunt-translation-tasks"
   ]
 }

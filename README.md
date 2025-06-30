@@ -10,13 +10,13 @@ Dev libraries that might or might not be useful.
 
 ## Installation
 
-1. Clone the repository into your plugin’s subfolder (e.g., at dev/olib-dev).  
-2. Exclude this subfolder from distribution (e.g., add dev/olib-dev to your .distignore).  
+1. Clone the repository into your plugin’s subfolder (e.g., at dev/grunt-translation-tasks).  
+2. Exclude this subfolder from distribution (e.g., add dev/grunt-translation-tasks to your .distignore).  
 3. Add the following workspace configuration to your plugin’s package.json:
    ```json
    "workspaces": {
      "packages": [
-       "dev/olib-dev"
+       "dev/grunt-translation-tasks"
      ]
    }
    ```
@@ -27,7 +27,7 @@ Dev libraries that might or might not be useful.
      ```javascript
      // ...existing code...
      const pluginName = 'YOURPLUGINSLUG'; // replace with your slug
-     require('./dev/olib-dev/grunt-custom-tasks.js')(grunt, pluginName);
+     require('./dev/grunt-translation-tasks/grunt-translation-tasks.js')(grunt, pluginName);
      // ...existing code...
      ```
 6. Run "grunt" or invoke specific tasks (e.g., "grunt i18n") as needed.

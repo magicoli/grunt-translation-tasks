@@ -12,7 +12,7 @@ module.exports = function( grunt ) {
 	// } );
 
     // Load shared custom tasks with pluginName
-    require('./dev/olib-dev/grunt-custom-tasks.js')(grunt, pluginName);
+    require('./dev/grunt-translation-tasks/grunt-translation-tasks.js')(grunt, pluginName);
 
     grunt.util.linefeed = '\n';
 
