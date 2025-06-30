@@ -1,0 +1,18 @@
+{
+  "name": "my-project",
+  "version": "1.0.0",
+  "description": "My PHP project with translations",
+  "scripts": {
+    "build": "grunt i18n",
+    "i18n": "grunt i18n"
+  },
+  "workspaces": {
+    "packages": [
+      "dev/grunt-translation-tasks"
+    ]
+  },
+  "devDependencies": {
+    "grunt": "^1.6.1",
+    "grunt-cli": "^1.4.3"
+  }
+}

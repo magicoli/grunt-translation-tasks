@@ -60,12 +60,6 @@ module.exports = function(grunt, pluginName) {
         grunt.loadNpmTasks('grunt-wp-i18n');
     }
 
-    // Load all necessary Grunt plugins
-    grunt.loadNpmTasks('grunt-contrib-concat');
-    grunt.loadNpmTasks('grunt-text-replace');
-    grunt.loadNpmTasks('grunt-contrib-copy');
-    grunt.loadNpmTasks('grunt-contrib-clean');
-    
     // Register custom tasks
     if (isWordPressProject) {
         grunt.registerTask('i18n', [ 'addtextdomain', 'makepot', 'msgmerge', 'makemo' ]);
