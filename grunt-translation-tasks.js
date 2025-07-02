@@ -42,7 +42,7 @@ module.exports = function(grunt, pluginName) {
         target: {
             options: {
                 domainPath: '/' + localeFolder,
-                exclude: [ '\.git/*', 'bin/*', 'node_modules/*', 'vendor/*', 'tests/*', 'tmp/*', 'dev/*' ],
+                exclude: [ '\.git/*', 'bin/*', 'node_modules/*', 'vendor/*', '*/vendor/*', 'tests/*', 'tmp/*', 'dev/*' ],
                 mainFile: isWordPressProject ? `${pluginName}.php` : null,
                 potFilename: `${projectName}.pot`,
                 potHeaders: {
