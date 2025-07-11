@@ -138,7 +138,20 @@ module.exports = function(grunt, pluginName) {
         target: {
             options: {
                 domainPath: '/' + localeFolder,
-                exclude: [ '\.git/*', 'bin/*', 'node_modules/*', 'vendor/*', '*/vendor/*', '**/vendor/*', 'tests/*', '**/tests/*', 'tmp/*', 'dev/*' ],
+                exclude: [
+                    '\.git/*',
+                    'bin/*',
+                    'node_modules/*',
+                    'vendor/*',
+                    '*/vendor/*',
+                    '**/vendor/*',
+                    '**/tmp/*',
+                    '**/data/*',
+                    'tests/*',
+                    '**/tests/*',
+                    'tmp/*',
+                    'dev/*',
+                ],
                 mainFile: isWordPressProject ? `${pluginName}.php` : null,
                 potFilename: `${projectName}.pot`,
                 potHeaders: {
@@ -172,7 +185,16 @@ module.exports = function(grunt, pluginName) {
     grunt.registerTask('xgettext', 'Extract strings using xgettext for non-WordPress projects', function() {
         var done = this.async();
         var potFile = potPath + '/' + projectName + '.pot';
-        var phpFiles = grunt.file.expand(['**/*.php', '!node_modules/**', '!vendor/**', '!**/vendor/**', '!tests/**', '!dev/**']);
+        var phpFiles = grunt.file.expand([
+            '**/*.php',
+            '!node_modules/**',
+            '!vendor/**',
+            '!**/vendor/**',
+            '!**/tmp/**',
+            '!**/data/**',
+            '!tests/**',
+            '!dev/**'
+        ]);
         
         if (!phpFiles.length) {
             grunt.log.error('No PHP files found for extraction');
