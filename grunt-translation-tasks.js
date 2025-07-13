@@ -146,7 +146,10 @@ module.exports = function(grunt, pluginName) {
                     '*/vendor/*',
                     '**/vendor/*',
                     '**/tmp/*',
+                    '**/cache/*',
                     '**/data/*',
+                    'cache/*',
+                    'data/*',
                     'tests/*',
                     '**/tests/*',
                     'tmp/*',
@@ -188,16 +191,44 @@ module.exports = function(grunt, pluginName) {
         var phpFiles = grunt.file.expand([
             '**/*.php',
             '!node_modules/**',
+
             '!vendor/**',
             '!**/vendor/**',
             '!**/tmp/**',
             '!**/data/**',
+            '!**/cache/**',
+            '!data/**',
+            '!cache/**',
             '!tests/**',
             '!dev/**'
         ]);
+        var jsFiles = grunt.file.expand([
+            '**/*.js',
+            '!node_modules/**',
+            '!vendor/**',
+            '!**/vendor/**',
+            '!**/tmp/**',
+            '!**/data/**',
+            '!**/cache/**',
+            '!data/**',
+            '!cache/**',
+            '!tests/**',
+            '!dev/**'
+        ]);
+
         
-        if (!phpFiles.length) {
-            grunt.log.error('No PHP files found for extraction');
+        var allFiles = phpFiles.concat(jsFiles);
+        // DEBUG show files to about to be processed and die
+        grunt.log.writeln('Files to be processed:');
+        allFiles.forEach(function(file) {
+            grunt.log.writeln(' - ' + file);
+        });
+
+        // DEBUG end in all case, to test the files compilation method, do not remove
+        return done(true);
+        
+        if (!allFiles.length) {
+            grunt.log.error('No PHP or JS files found for extraction');
             return done(false);
         }
         
@@ -230,14 +261,14 @@ module.exports = function(grunt, pluginName) {
                 '--from-code=UTF-8',
                 '--add-comments=translators',
                 '--output=' + potFile
-            ].concat(phpFiles)
+            ].concat(allFiles)
         }, function(error, result, code) {
             if (error) {
                 grunt.log.error('Error running xgettext: ' + error);
                 return done(false);
             }
             grunt.log.writeln('Generated POT file: ' + potFile);
-            grunt.log.writeln('Extracted strings from ' + phpFiles.length + ' PHP files');
+            grunt.log.writeln('Extracted strings from ' + phpFiles.length + ' PHP files and ' + jsFiles.length + ' JS files');
             done();
         });
     });
