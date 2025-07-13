@@ -111,6 +111,141 @@ module.exports = function(grunt, pluginName) {
         return true;
     }
 
+    // Helper function to generate JSON from PO files for JavaScript usage
+    function generateJsonFromPo(poFile, jsonFile) {
+        if (!grunt.file.exists(poFile)) {
+            throw new Error('PO file not found: ' + poFile);
+        }
+
+        var poContent = grunt.file.read(poFile);
+        var translations = {};
+        
+        // Parse PO file content
+        var lines = poContent.split('\n');
+        var currentEntry = null;
+        var inMsgid = false;
+        var inMsgstr = false;
+        var inMsgstrPlural = false;
+        var pluralIndex = 0;
+        
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i].trim();
+            
+            // Skip empty lines and comments (except for context comments)
+            if (!line || line.startsWith('#')) {
+                // Check for context comments
+                if (line.startsWith('#: ') || line.startsWith('#, ')) {
+                    continue;
+                }
+                if (line.startsWith('#msgctxt ') || line.startsWith('msgctxt ')) {
+                    // Handle context - we'll append it to the msgid
+                    var contextMatch = line.match(/msgctxt\s+"([^"]+)"/);
+                    if (contextMatch && currentEntry) {
+                        currentEntry.context = contextMatch[1];
+                    }
+                    continue;
+                }
+                // Reset entry on empty line
+                if (!line && currentEntry && currentEntry.msgid && currentEntry.msgstr) {
+                    // Store the completed entry
+                    var key = currentEntry.msgid;
+                    if (currentEntry.context) {
+                        key += '_' + currentEntry.context;
+                    }
+                    if (currentEntry.plurals && currentEntry.plurals.length > 0) {
+                        // For plural forms, store the first plural form
+                        translations[key] = currentEntry.plurals[0] || '';
+                        // Also store the plural key
+                        translations[key + '_plural'] = currentEntry.plurals[1] || '';
+                    } else {
+                        translations[key] = currentEntry.msgstr || '';
+                    }
+                    currentEntry = null;
+                }
+                continue;
+            }
+            
+            // Parse msgid
+            if (line.startsWith('msgid ')) {
+                currentEntry = { msgid: '', msgstr: '', plurals: [] };
+                inMsgid = true;
+                inMsgstr = false;
+                inMsgstrPlural = false;
+                var msgidMatch = line.match(/msgid\s+"([^"]*)"/);
+                if (msgidMatch) {
+                    currentEntry.msgid = msgidMatch[1];
+                }
+                continue;
+            }
+            
+            // Parse msgid_plural
+            if (line.startsWith('msgid_plural ')) {
+                inMsgid = false;
+                var msgidPluralMatch = line.match(/msgid_plural\s+"([^"]*)"/);
+                if (msgidPluralMatch) {
+                    currentEntry.msgid_plural = msgidPluralMatch[1];
+                }
+                continue;
+            }
+            
+            // Parse msgstr
+            if (line.startsWith('msgstr ')) {
+                inMsgid = false;
+                inMsgstr = true;
+                inMsgstrPlural = false;
+                var msgstrMatch = line.match(/msgstr\s+"([^"]*)"/);
+                if (msgstrMatch) {
+                    currentEntry.msgstr = msgstrMatch[1];
+                }
+                continue;
+            }
+            
+            // Parse msgstr[n]
+            if (line.match(/msgstr\[\d+\]/)) {
+                inMsgid = false;
+                inMsgstr = false;
+                inMsgstrPlural = true;
+                var pluralMatch = line.match(/msgstr\[(\d+)\]\s+"([^"]*)"/);
+                if (pluralMatch) {
+                    pluralIndex = parseInt(pluralMatch[1]);
+                    currentEntry.plurals[pluralIndex] = pluralMatch[2];
+                }
+                continue;
+            }
+            
+            // Handle continuation lines (quoted strings)
+            if (line.startsWith('"') && line.endsWith('"')) {
+                var continuationText = line.slice(1, -1);
+                if (inMsgid) {
+                    currentEntry.msgid += continuationText;
+                } else if (inMsgstr) {
+                    currentEntry.msgstr += continuationText;
+                } else if (inMsgstrPlural) {
+                    currentEntry.plurals[pluralIndex] = (currentEntry.plurals[pluralIndex] || '') + continuationText;
+                }
+                continue;
+            }
+        }
+        
+        // Handle the last entry if file doesn't end with empty line
+        if (currentEntry && currentEntry.msgid && currentEntry.msgstr) {
+            var key = currentEntry.msgid;
+            if (currentEntry.context) {
+                key += '_' + currentEntry.context;
+            }
+            if (currentEntry.plurals && currentEntry.plurals.length > 0) {
+                translations[key] = currentEntry.plurals[0] || '';
+                translations[key + '_plural'] = currentEntry.plurals[1] || '';
+            } else {
+                translations[key] = currentEntry.msgstr || '';
+            }
+        }
+        
+        // Write JSON file
+        grunt.file.write(jsonFile, JSON.stringify(translations, null, 4));
+        return true;
+    }
+
     grunt.config.set('addtextdomain', {
         options: {
             textdomain: projectName,
@@ -318,6 +453,7 @@ module.exports = function(grunt, pluginName) {
 
         poFiles.forEach(function(poFile) {
             var moFile = poFile.replace(/\.po$/, '.mo');
+            var jsonFile = poFile.replace(/\.po$/, '.json');
             
             // Update headers before conversion
             updatePoHeaders(poFile, null, true);
@@ -331,6 +467,15 @@ module.exports = function(grunt, pluginName) {
                     hasErrors = true;
                 } else {
                     grunt.log.writeln('Converted ' + poFile + ' to ' + moFile);
+                    
+                    // Generate JSON file for JavaScript usage
+                    try {
+                        generateJsonFromPo(poFile, jsonFile);
+                        grunt.log.writeln('Generated ' + jsonFile + ' for JavaScript usage');
+                    } catch (jsonError) {
+                        grunt.log.error('Error generating JSON from ' + poFile + ': ' + jsonError);
+                        hasErrors = true;
+                    }
                 }
                 completed++;
                 if (completed === poFiles.length) {
@@ -350,7 +495,11 @@ module.exports = function(grunt, pluginName) {
         }
 
         var completed = 0;
+        var hasErrors = false;
+
         poFiles.forEach(function(poFile) {
+            var jsonFile = poFile.replace(/\.po$/, '.json');
+            
             // Update headers before conversion
             updatePoHeaders(poFile, null, true);
             
@@ -360,12 +509,22 @@ module.exports = function(grunt, pluginName) {
             }, function(error, result, code) {
                 if (error) {
                     grunt.log.error('Error processing ' + poFile + ': ' + error);
-                    return done(false);
+                    hasErrors = true;
+                } else {
+                    grunt.log.writeln('Converted ' + poFile);
+                    
+                    // Generate JSON file for JavaScript usage
+                    try {
+                        generateJsonFromPo(poFile, jsonFile);
+                        grunt.log.writeln('Generated ' + jsonFile + ' for JavaScript usage');
+                    } catch (jsonError) {
+                        grunt.log.error('Error generating JSON from ' + poFile + ': ' + jsonError);
+                        hasErrors = true;
+                    }
                 }
-                grunt.log.writeln('Converted ' + poFile);
                 completed++;
                 if (completed === poFiles.length) {
-                    done();
+                    done(!hasErrors);
                 }
             });
         });
