@@ -188,88 +188,80 @@ module.exports = function(grunt, pluginName) {
     grunt.registerTask('xgettext', 'Extract strings using xgettext for non-WordPress projects', function() {
         var done = this.async();
         var potFile = potPath + '/' + projectName + '.pot';
-        var phpFiles = grunt.file.expand([
-            '**/*.php',
-            '!node_modules/**',
-
-            '!vendor/**',
-            '!**/vendor/**',
-            '!**/tmp/**',
-            '!**/data/**',
-            '!**/cache/**',
-            '!data/**',
-            '!cache/**',
-            '!tests/**',
-            '!dev/**'
-        ]);
-        var jsFiles = grunt.file.expand([
-            '**/*.js',
-            '!node_modules/**',
-            '!vendor/**',
-            '!**/vendor/**',
-            '!**/tmp/**',
-            '!**/data/**',
-            '!**/cache/**',
-            '!data/**',
-            '!cache/**',
-            '!tests/**',
-            '!dev/**'
-        ]);
-
         
-        var allFiles = phpFiles.concat(jsFiles);
-        // DEBUG show files to about to be processed and die
-        grunt.log.writeln('Files to be processed:');
-        allFiles.forEach(function(file) {
-            grunt.log.writeln(' - ' + file);
-        });
-
-        // DEBUG end in all case, to test the files compilation method, do not remove
-        return done(true);
-        
-        if (!allFiles.length) {
-            grunt.log.error('No PHP or JS files found for extraction');
-            return done(false);
-        }
-        
+        // Use git ls-files for much faster file discovery
         grunt.util.spawn({
-            cmd: 'xgettext',
-            args: [
-                '--language=PHP',
-                '--keyword=_',
-                '--keyword=__',
-                '--keyword=_e',
-                '--keyword=_c:1,2c',
-                '--keyword=_x:1,2c',
-                '--keyword=_ex:1,2c',
-                '--keyword=_n:1,2',
-                '--keyword=_nx:1,2,4c',
-                '--keyword=_n_noop:1,2',
-                '--keyword=_nx_noop:1,2,3c',
-                '--keyword=_f',
-                '--keyword=_fe',
-                '--keyword=_p:1,2',
-                '--keyword=_pf:1,2',
-                '--keyword=_pfe:1,2',
-                '--keyword=_m',
-                '--keyword=esc_attr__',
-                '--keyword=esc_html__',
-                '--keyword=esc_attr_e',
-                '--keyword=esc_html_e',
-                '--keyword=esc_attr_x:1,2c',
-                '--keyword=esc_html_x:1,2c',
-                '--from-code=UTF-8',
-                '--add-comments=translators',
-                '--output=' + potFile
-            ].concat(allFiles)
+            cmd: 'git',
+            args: ['ls-files', '*.php', '*.js']
         }, function(error, result, code) {
             if (error) {
-                grunt.log.error('Error running xgettext: ' + error);
+                grunt.log.error('Error running git ls-files: ' + error);
+                grunt.log.error('This task requires a git repository. Make sure you are in a git repository and git is available.');
                 return done(false);
             }
-            grunt.log.writeln('Generated POT file: ' + potFile);
-            grunt.log.writeln('Extracted strings from ' + phpFiles.length + ' PHP files and ' + jsFiles.length + ' JS files');
-            done();
+            
+            // Parse git output and filter files
+            var gitFiles = result.stdout.trim().split('\n').filter(function(file) {
+                return file && 
+                       !file.match(/^(node_modules|vendor|tests|dev|data|cache|tmp)\//) &&
+                       !file.match(/\/(vendor|tmp|data|cache)\//) &&
+                       (file.endsWith('.php') || file.endsWith('.js'));
+            });
+            
+            var phpFiles = gitFiles.filter(function(file) { return file.endsWith('.php'); });
+            var jsFiles = gitFiles.filter(function(file) { return file.endsWith('.js'); });
+            
+            grunt.log.writeln('Found ' + phpFiles.length + ' PHP files and ' + jsFiles.length + ' JS files via git ls-files');
+
+            // DEBUG show files to about to be processed and die
+            grunt.log.writeln('Files to be processed:');
+            gitFiles.forEach(function(file) {
+                grunt.log.writeln(' - ' + file);
+            });
+            
+            if (!gitFiles.length) {
+                grunt.log.error('No PHP or JS files found for extraction');
+                return done(false);
+            }
+            
+            grunt.util.spawn({
+                cmd: 'xgettext',
+                args: [
+                    '--keyword=_',
+                    '--keyword=__',
+                    '--keyword=_e',
+                    '--keyword=_c:1,2c',
+                    '--keyword=_x:1,2c',
+                    '--keyword=_ex:1,2c',
+                    '--keyword=_n:1,2',
+                    '--keyword=_nx:1,2,4c',
+                    '--keyword=_n_noop:1,2',
+                    '--keyword=_nx_noop:1,2,3c',
+                    '--keyword=_f',
+                    '--keyword=_fe',
+                    '--keyword=_p:1,2',
+                    '--keyword=_pf:1,2',
+                    '--keyword=_pfe:1,2',
+                    '--keyword=_m',
+                    '--keyword=esc_attr__',
+                    '--keyword=esc_html__',
+                    '--keyword=esc_attr_e',
+                    '--keyword=esc_html_e',
+                    '--keyword=esc_attr_x:1,2c',
+                    '--keyword=esc_html_x:1,2c',
+                    '--from-code=UTF-8',
+                    '--add-comments=translators',
+                    '--output=' + potFile
+                ].concat(gitFiles)
+            }, function(error, result, code) {
+                if (error) {
+                    grunt.log.error('Error running xgettext: ' + error);
+                    return done(false);
+                }
+                grunt.log.writeln('Generated POT file: ' + potFile);
+                grunt.log.writeln('Extracted strings from ' + phpFiles.length + ' PHP files and ' + jsFiles.length + ' JS files');
+                done();
+            });
         });
     });
 
